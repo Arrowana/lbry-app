@@ -83,60 +83,74 @@ export const selectNavLinks = createSelector(
   selectHistoryStack,
   (page, historyStack) => {
     // check to see if they've recently been on a wallet sub-link
-    const previousStack = historyStack.slice().reverse()
+    const previousStack = historyStack.slice().reverse();
     let walletLink;
-    for (var i = 0; i < previousStack.length; i +=1) {
-      const currentStackItem = previousStack[i];
-      if (currentStackItem.path === "/wallet" || currentStackItem.path === "/send" || currentStackItem.path === "/getcredits") {
-        walletLink = currentStackItem.path;
-        break;
+    if (page === 'wallet' || page === 'send' || page === 'getcredits') {
+      walletLink = '/wallet';
+    } else {
+      for (var i = 0; i < previousStack.length; i += 1) {
+        const currentStackItem = previousStack[i];
+        if (
+          currentStackItem.path === '/wallet' ||
+          currentStackItem.path === '/send' ||
+          currentStackItem.path === '/getcredits'
+        ) {
+          walletLink = currentStackItem.path;
+          break;
+        }
       }
     }
 
-    const walletSubLinks = [{
-      label: "Overview",
-      path: "/wallet",
-      active: page === "wallet",
-    },
-    {
-      label: "Send Credits",
-      path: "/send",
-      active: page === "send"
-    },
-    {
-      label: "Get Credits",
-      path: "/getcredits",
-      active: page === "getcredits"
-    },]
-    
+    const walletSubLinks = [
+      {
+        label: 'Overview',
+        path: '/wallet',
+        active: page === 'wallet',
+      },
+      {
+        label: 'Send Credits',
+        path: '/send',
+        active: page === 'send',
+      },
+      {
+        label: 'Get Credits',
+        path: '/getcredits',
+        active: page === 'getcredits',
+      },
+    ];
+
     const navLinks = {
-      primary: [{
-        label: "Explore",
-        path: "/discover",
-        active: page === "discover",
-      }, {
-        label: "Subscriptions",
-        path: "/subscriptions",
-        active: page === "subscriptions"
-      }],
-      secondary: [{
-        label: "Wallet",
-        path:  walletLink || "/wallet", // need to do something speical here,
-        active: page === "wallet" || walletSubLinks.find(({ path }) => page === path.slice(1)),
-        subLinks: walletSubLinks
-    },
-    {
-      label: "Settings",
-      path: "/settings",
-      active: page === "settings"
-    },
-    {
-      label: "Help",
-      path: "/help",
-      active: page === "help"
-    }
-  ]
-    }
+      primary: [
+        {
+          label: 'Explore',
+          path: '/discover',
+          active: page === 'discover',
+        },
+        {
+          label: 'Subscriptions',
+          path: '/subscriptions',
+          active: page === 'subscriptions',
+        },
+      ],
+      secondary: [
+        {
+          label: 'Wallet',
+          path: walletLink || '/wallet', // need to do something speical here,
+          active: page === 'wallet' || walletSubLinks.find(({ path }) => page === path.slice(1)),
+          subLinks: walletSubLinks,
+        },
+        {
+          label: 'Settings',
+          path: '/settings',
+          active: page === 'settings',
+        },
+        {
+          label: 'Help',
+          path: '/help',
+          active: page === 'help',
+        },
+      ],
+    };
     return navLinks;
   }
-)
+);
