@@ -200,7 +200,7 @@ class CategoryList extends React.PureComponent<Props, State> {
             <h3>
               {categoryLink ? (
                 <Button
-                  className="button-text no-underline"
+                  noStyle
                   label={category}
                   navigate="/show"
                   navigateParams={{ uri: categoryLink }}

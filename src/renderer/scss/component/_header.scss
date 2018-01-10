@@ -1,29 +1,18 @@
-#header {
+.header {
   display: flex;
   align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: var(--header-height);
-  z-index: 3;
-  box-sizing: border-box;
-  color: var(--header-color);
+  justify-content: space-between;
   background-color: var(--header-bg);
-}
-
-.header__actions-left {
-  display: flex;
-  padding: 0 5px;
+  padding: 0 $spacing-vertical * 2/3;
 }
 
 .header__actions-right {
   margin-left: auto;
+  padding-left: $spacing-vertical / 2;
 }
 
 .header__wunderbar {
   flex: 1;
-  max-width: 325px;
   min-width: 175px;
   overflow: hidden;
   white-space: nowrap;
@@ -31,7 +20,6 @@
   height: 100%;
   display: flex;
   align-items: center;
-  padding: 10px 5px;
   cursor: text;
 }
 

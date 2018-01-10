@@ -1,18 +1,15 @@
 import React from 'react';
-import SubHeader from 'component/subHeader';
 import WalletBalance from 'component/walletBalance';
 import RewardSummary from 'component/rewardSummary';
 import TransactionListRecent from 'component/transactionListRecent';
+import Page from 'component/page';
 
 const WalletPage = props => (
-  <main className="main--single-column page--wallet">
-    <SubHeader />
-    <div className="card-grid">
-      <WalletBalance />
-      <RewardSummary />
-    </div>
+  <Page>
+    <WalletBalance />
+    <RewardSummary />
     <TransactionListRecent />
-  </main>
+  </Page>
 );
 
 export default WalletPage;

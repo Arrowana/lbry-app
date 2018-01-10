@@ -22,6 +22,8 @@ type Props = {
   alt: ?boolean,
   flat: ?boolean,
   fakeLink: ?boolean,
+  noStyle: ?boolean,
+  noUnderline: ?boolean,
   description: ?string,
 };
 
@@ -45,20 +47,25 @@ const Button = (props: Props) => {
     flat,
     fakeLink,
     description,
+    noStyle,
+    noUnderline,
     ...otherProps
   } = props;
 
   const combinedClassName = classnames(
-    {
-      btn: !fakeLink,
-      'btn--link': fakeLink,
-      'btn--primary': !fakeLink && !alt,
-      'btn--alt': alt,
-      'btn--inverse': inverse,
-      'btn--disabled': disabled,
-      'btn--circle': circle,
-      'btn--flat': flat,
-    },
+    'btn',
+    noStyle
+      ? 'btn--no-style'
+      : {
+          'btn--link': fakeLink,
+          'btn--primary': !alt && !fakeLink,
+          'btn--alt': alt,
+          'btn--inverse': inverse,
+          'btn--disabled': disabled,
+          'btn--circle': circle,
+          'btn--flat': flat,
+          'btn--no-underline': fakeLink && noUnderline,
+        },
     className
   );
 

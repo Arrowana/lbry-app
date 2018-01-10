@@ -1,12 +1,11 @@
 import React from 'react';
-import SubHeader from 'component/subHeader';
 import Link from 'component/link';
 import RewardSummary from 'component/rewardSummary';
 import ShapeShift from 'component/shapeShift';
+import Page from "component/page";
 
 const GetCreditsPage = props => (
-  <main className="main--single-column">
-    <SubHeader />
+  <Page>
     <RewardSummary />
     <ShapeShift />
     <section className="card">
@@ -32,7 +31,7 @@ const GetCreditsPage = props => (
         <Link button="alt" href="https://lbry.io/faq/earn-credits" label={__('Read More')} />
       </div>
     </section>
-  </main>
+  </Page>
 );
 
 export default GetCreditsPage;

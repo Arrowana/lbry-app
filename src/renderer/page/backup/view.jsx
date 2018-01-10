@@ -1,5 +1,4 @@
 import React from 'react';
-import SubHeader from 'component/subHeader';
 import Link from 'component/link';
 
 class BackupPage extends React.PureComponent {
@@ -17,7 +16,6 @@ class BackupPage extends React.PureComponent {
 
     return (
       <main className="main--single-column">
-        <SubHeader />
         <section className="card">
           <div className="card__title-primary">
             <h3>{__('Backup Your LBRY Credits')}</h3>

@@ -2,7 +2,6 @@ import React from 'react';
 import { BusyMessage } from 'component/common';
 import RewardListClaimed from 'component/rewardListClaimed';
 import RewardTile from 'component/rewardTile';
-import SubHeader from 'component/subHeader';
 import Link from 'component/link';
 
 class RewardsPage extends React.PureComponent {
@@ -111,7 +110,6 @@ class RewardsPage extends React.PureComponent {
   render() {
     return (
       <main className="main--single-column">
-        <SubHeader />
         {this.renderPageHeader()}
         {this.renderUnclaimedRewards()}
         {<RewardListClaimed />}

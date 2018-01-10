@@ -22,72 +22,6 @@ export const selectCurrentParams = createSelector(selectCurrentPath, path => {
 export const makeSelectCurrentParam = param =>
   createSelector(selectCurrentParams, params => (params ? params[param] : undefined));
 
-export const selectHeaderLinks = createSelector(selectCurrentPage, page => {
-  // This contains intentional fall throughs
-  switch (page) {
-    case 'wallet':
-    case 'history':
-    case 'send':
-    case 'getcredits':
-    case 'invite':
-    case 'rewards':
-    case 'backup':
-      return {
-        wallet: __('Overview'),
-        getcredits: __('Get Credits'),
-        send: __('Send / Receive'),
-        rewards: __('Rewards'),
-        invite: __('Invites'),
-        history: __('History'),
-      };
-    case 'downloaded':
-    case 'published':
-      return {
-        downloaded: __('Downloaded'),
-        published: __('Published'),
-      };
-    case 'settings':
-    case 'help':
-      return {
-        settings: __('Settings'),
-        help: __('Help'),
-      };
-    case 'discover':
-    case 'subscriptions':
-      return {
-        discover: __('Discover'),
-        subscriptions: __('Subscriptions'),
-      };
-    default:
-      return null;
-  }
-});
-
-export const selectPageTitle = createSelector(
-  selectCurrentPage,
-  selectCurrentParams,
-  (page, params) => {
-    switch (page) {
-      case 'show': {
-        const parts = [Lbryuri.normalize(params.uri)];
-        // If the params has any keys other than "uri"
-        if (Object.keys(params).length > 1) {
-          parts.push(toQueryString(Object.assign({}, params, { uri: null })));
-        }
-        return parts.join('?');
-      }
-      case 'discover':
-        return __('Discover');
-      case false:
-      case null:
-      case '':
-        return '';
-      default:
-        return '';
-    }
-  }
-);
-
 export const selectPathAfterAuth = createSelector(selectState, state => state.pathAfterAuth);
 
 export const selectIsBackDisabled = createSelector(selectState, state => state.index === 0);
@@ -106,3 +40,103 @@ export const selectActiveHistoryEntry = createSelector(
   selectState,
   state => state.stack[state.index]
 );
+
+export const selectPageTitle = createSelector(
+  selectCurrentPage,
+  selectCurrentParams,
+  (page, params) => {
+    switch (page) {
+      case 'show': {
+        const parts = [Lbryuri.normalize(params.uri)];
+        // If the params has any keys other than "uri"
+        if (Object.keys(params).length > 1) {
+          parts.push(toQueryString(Object.assign({}, params, { uri: null })));
+        }
+        return parts.join('?');
+      }
+      case 'discover':
+        return __('Discover');
+      case 'subscriptions':
+        return __('Your Subscriptions');
+      case 'wallet':
+        return __('Your Wallet');
+      case 'settings':
+        return __('Settings');
+      case 'help':
+        return __('Help');
+      case 'send':
+        return __('Send LBRY Credits');
+      case 'getcredits':
+        return __('Get LBRY Credits');
+      case false:
+      case null:
+      case '':
+        return '';
+      default:
+        return '';
+    }
+  }
+);
+
+export const selectNavLinks = createSelector(
+  selectCurrentPage,
+  selectHistoryStack,
+  (page, historyStack) => {
+    // check to see if they've recently been on a wallet sub-link
+    const previousStack = historyStack.slice().reverse()
+    let walletLink;
+    for (var i = 0; i < previousStack.length; i +=1) {
+      const currentStackItem = previousStack[i];
+      if (currentStackItem.path === "/wallet" || currentStackItem.path === "/send" || currentStackItem.path === "/getcredits") {
+        walletLink = currentStackItem.path;
+        break;
+      }
+    }
+
+    const walletSubLinks = [{
+      label: "Overview",
+      path: "/wallet",
+      active: page === "wallet",
+    },
+    {
+      label: "Send Credits",
+      path: "/send",
+      active: page === "send"
+    },
+    {
+      label: "Get Credits",
+      path: "/getcredits",
+      active: page === "getcredits"
+    },]
+    
+    const navLinks = {
+      primary: [{
+        label: "Explore",
+        path: "/discover",
+        active: page === "discover",
+      }, {
+        label: "Subscriptions",
+        path: "/subscriptions",
+        active: page === "subscriptions"
+      }],
+      secondary: [{
+        label: "Wallet",
+        path:  walletLink || "/wallet", // need to do something speical here,
+        active: page === "wallet" || walletSubLinks.find(({ path }) => page === path.slice(1)),
+        subLinks: walletSubLinks
+    },
+    {
+      label: "Settings",
+      path: "/settings",
+      active: page === "settings"
+    },
+    {
+      label: "Help",
+      path: "/help",
+      active: page === "help"
+    }
+  ]
+    }
+    return navLinks;
+  }
+)

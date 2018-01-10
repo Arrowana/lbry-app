@@ -4,31 +4,36 @@ Determine [disabled] or .disabled
 Add <a> support (probably just get rid of button prefix)
 */
 
-button {
+.btn {
   border: none;
   text-decoration: none;
   cursor: pointer;
   position: relative;
+  font-weight: 600;
 }
 
-button:disabled.btn--disabled {
+.btn:disabled.btn--disabled {
   cursor: default;
   background-color: transparent;
+
+  &:hover {
+    box-shadow: none;
+  }
 }
 
-button.btn {
+.btn {
   padding: 10px;
   margin: 0 5px;
   border-radius: var(--btn-radius);
   color: var(--btn-primary-color);
   background-color: var(--btn-primary-bg);
 
-  &:hover:not(.btn--disabled) {
+  &:hover {
     box-shadow: var(--box-shadow-layer);
   }
 }
 
-button.btn.btn--alt {
+.btn.btn--alt {
   color: var(--btn-alt-color);
   background-color: #efefef;
 
@@ -46,7 +51,7 @@ button.btn.btn--alt {
   }
 }
 
-button.btn.btn--circle {
+.btn.btn--circle {
   border-radius: 50%;
   transition: all 0.2s;
 
@@ -55,21 +60,47 @@ button.btn.btn--circle {
   }
 }
 
-button.btn.btn--inverse {
-  box-shadow: none;
+.btn.btn--inverse {
   background-color: transparent;
   color: var(--btn-primary-bg);
 }
 
-button.btn--link {
+.btn.btn--link {
   padding: 0;
   margin: 0;
   background-color: inherit;
-  font-size: 0.9em;
+  font-size: 1em;
   color: var(--btn-primary-bg); // this should be a different color
+  border-radius: 0;
 
   &:hover {
     border-bottom: 1px solid;
+    box-shadow: none;
+  }
+}
+
+.btn--no-style {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  background-color: inherit;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+
+  &:hover {
+    box-shadow: none;
+  }
+}
+
+.btn.btn--link.btn--no-underline:hover {
+  border-bottom: none;
+}
+
+.btn--link,
+.btn--no-style {
+  .btn__label {
+    padding: 0;
   }
 }
 

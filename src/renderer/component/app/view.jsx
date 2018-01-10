@@ -1,7 +1,6 @@
 // @flow
 import React from 'react';
 import Router from 'component/router/index';
-import Header from 'component/header';
 import Theme from 'component/theme';
 import ModalRouter from 'modal/modalRouter';
 import ReactModal from 'react-modal';
@@ -82,7 +81,6 @@ class App extends React.PureComponent<Props> {
     return (
       <div id="window">
         <Theme />
-        <Header />
         <Router />
         <ModalRouter />
       </div>

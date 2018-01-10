@@ -3,16 +3,11 @@ Both of these should probably die and become variables as well
  */
 $spacing-vertical: 24px;
 $width-page-constrained: 800px;
-$text-color: #000;
 
 :root {
-  --spacing-vertical: 24px;
-
   /* Colors */
   --color-brand: #155b4a;
   --color-primary: #155b4a;
-  --color-primary-light: saturate(lighten(#155b4a, 50%), 20%);
-  --color-light-alt: hsl(hue(#155b4a), 15, 85);
   --color-dark-overlay: rgba(32, 32, 32, 0.9);
   --color-help: rgba(0, 0, 0, 0.54);
   --color-notice: #8a6d3b;
@@ -41,12 +36,7 @@ $text-color: #000;
   --box-shadow-focus: 2px 4px 4px 0 rgba(0, 0, 0, 0.14), 2px 5px 3px -2px rgba(0, 0, 0, 0.2),
     2px 3px 7px 0 rgba(0, 0, 0, 0.12);
 
-  /* Transition */
-  --transition-duration: 0.225s;
-  --transition-type: ease;
-
   /* Text */
-  --text-color: $text-color;
   --text-help-color: #eee;
   --text-max-width: 660px;
   --text-link-padding: 4px;
