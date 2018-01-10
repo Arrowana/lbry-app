@@ -34,9 +34,9 @@ export default () => {
       submenu: [
         {
           label: 'Learn More',
-          click(item, focusedWindow) {
-            if (focusedWindow) {
-              focusedWindow.webContents.send('open-menu', '/help');
+          click(menuItem, browserWindoww) {
+            if (browserWindoww) {
+              browserWindoww.webContents.send('open-menu', '/help');
             } else {
               shell.openExternal('https://lbry.io/faq');
             }

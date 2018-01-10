@@ -1,60 +1,29 @@
 /* eslint-disable no-console */
 // Module imports
-import path from 'path';
-import url from 'url';
-import Jayson from 'jayson';
-import SemVer from 'semver';
-import https from 'https';
 import keytar from 'keytar-prebuild';
-import ChildProcess from 'child_process';
-import assert from 'assert';
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, Tray, dialog } from 'electron';
-import setupMainMenu from './menu/setupMainMenu';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import setupBarMenu from './menu/setupBarMenu';
 import setupContextMenu from './menu/setupContextMenu';
+import setupTray from './setupTray';
 
 const localVersion = app.getVersion();
 
 // Debug configs
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-// Misc constants
-const latestReleaseAPIURL = 'https://api.github.com/repos/lbryio/lbry-app/releases/latest';
-const daemonPath = process.env.LBRY_DAEMON || path.join(__static, 'daemon/lbrynet-daemon');
 const rendererURL = isDevelopment
   ? `http://localhost:${process.env.ELECTRON_WEBPACK_WDS_PORT}`
   : `file://${__dirname}/index.html`;
 
-const client = Jayson.client.http({
-  host: 'localhost',
-  port: 5279,
-  path: '/',
-  timeout: 1000,
-});
-
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let rendererWindow;
-// Also keep the daemon subprocess alive
-let daemonSubprocess;
 
-// This is set to true right before we try to shut the daemon subprocess --
-// if it dies when we didn't ask it to shut down, we want to alert the user.
-let daemonStopRequested = false;
-
-// When a quit is attempted, we cancel the quit, do some preparations, then
-// this is set to true and app.quit() is called again to quit for real.
-let readyToQuit = false;
+let tray;
 
 // If we receive a URI to open from an external app but there's no window to
 // sendCredits it to, it's cached in this variable.
 let openURI = null;
-
-// Set this to true to minimize on clicking close
-// false for normal action
-let minimize = true;
-
-// Keep the tray also, it is getting GC'd if put in createTray()
-let tray = null;
 
 function processRequestedURI(URI) {
   // Windows normalizes URIs when they're passed in from other apps. On Windows,
@@ -72,71 +41,7 @@ function processRequestedURI(URI) {
   return URI;
 }
 
-/*
- * Replacement for Electron's shell.openItem. The Electron version doesn't
- * reliably work from the main process, and we need to be able to run it
- * when no windows are open.
- */
-function openItem(fullPath) {
-  const subprocOptions = {
-    detached: true,
-    stdio: 'ignore',
-  };
-
-  let child;
-  if (process.platform === 'darwin') {
-    child = ChildProcess.spawn('open', [fullPath], subprocOptions);
-  } else if (process.platform === 'linux') {
-    child = ChildProcess.spawn('xdg-open', [fullPath], subprocOptions);
-  } else if (process.platform === 'win32') {
-    child = ChildProcess.spawn(fullPath, Object.assign({}, subprocOptions, { shell: true }));
-  }
-
-  // Causes child process reference to be garbage collected, allowing main process to exit
-  child.unref();
-}
-/*
- * Quits by first killing the daemon, the calling quitting for real.
- */
-function safeQuit() {
-  minimize = false;
-  app.quit();
-}
-
-function getMenuTemplate() {
-  function getToggleItem() {
-    if (rendererWindow.isVisible() && rendererWindow.isFocused()) {
-      return {
-        label: 'Hide LBRY App',
-        click: () => rendererWindow.hide(),
-      };
-    }
-    return {
-      label: 'Show LBRY App',
-      click: () => rendererWindow.show(),
-    };
-  }
-
-  return [
-    getToggleItem(),
-    {
-      label: 'Quit',
-      click: () => safeQuit(),
-    },
-  ];
-}
-
-// This needs to be done as for linux the context menu doesn't update automatically(docs)
-function updateTray() {
-  const trayContextMenu = Menu.buildFromTemplate(getMenuTemplate());
-  if (tray) {
-    tray.setContextMenu(trayContextMenu);
-  } else {
-    console.log('How did update tray get called without a tray?');
-  }
-}
-
-function createWindow() {
+const createWindow = () => {
   // Disable renderer process's webSecurity on development to enable CORS.
   let windowConfiguration = {
     backgroundColor: '#155B4A',
@@ -159,12 +64,16 @@ function createWindow() {
   window.webContents.session.setUserAgent(`LBRY/${localVersion}`);
 
   window.maximize();
+
   if (isDevelopment) {
     window.webContents.openDevTools();
   }
+
   window.loadURL(rendererURL);
-  setupMainMenu();
+
+  setupBarMenu();
   setupContextMenu(window);
+
   if (openURI) {
     // We stored and received a URI that an external app requested before we had a window object
     window.webContents.on('did-finish-load', () => {
@@ -173,47 +82,14 @@ function createWindow() {
   }
 
   window.webContents.on('crashed', () => {
-    safeQuit();
-  });
-
-  window.removeAllListeners();
-
-  window.on('close', event => {
-    if (minimize) {
-      event.preventDefault();
-      window.hide();
-    }
+    window = null;
   });
 
   window.on('closed', () => {
     window = null;
   });
 
-  window.on('hide', () => {
-    // Checks what to show in the tray icon menu
-    if (minimize) updateTray();
-  });
-
-  window.on('show', () => {
-    // Checks what to show in the tray icon menu
-    if (minimize) updateTray();
-  });
-
-  window.on('blur', () => {
-    // Checks what to show in the tray icon menu
-    if (minimize) updateTray();
-
-    // Unregisters Alt+F4 shortcut
-    globalShortcut.unregister('Alt+F4');
-  });
-
   window.on('focus', () => {
-    // Checks what to show in the tray icon menu
-    if (minimize) updateTray();
-
-    // Registers shortcut for closing(quitting) the app
-    globalShortcut.register('Alt+F4', () => safeQuit());
-
     window.webContents.send('window-is-focused', null);
   });
 
@@ -229,33 +105,13 @@ function createWindow() {
         cancelId: 0,
       },
       buttonIndex => {
-        if (buttonIndex === 1) safeQuit();
+        if (buttonIndex === 1) app.quit();
       }
     );
   });
 
   return window;
-}
-
-function createTray() {
-  // Minimize to tray logic follows:
-  // Set the tray icon
-  let iconPath;
-  if (process.platform === 'darwin') {
-    // Using @2x for mac retina screens so the icon isn't blurry
-    // file name needs to include "Template" at the end for dark menu bar
-    iconPath = path.join(__static, '/img/fav/macTemplate@2x.png');
-  } else {
-    iconPath = path.join(__static, '/img/fav/32x32.png');
-  }
-
-  tray = new Tray(iconPath);
-  tray.setToolTip('LBRY App');
-  tray.setTitle('LBRY');
-  tray.on('double-click', () => {
-    rendererWindow.show();
-  });
-}
+};
 
 function handleOpenURIRequested(URI) {
   if (!rendererWindow) {
@@ -273,52 +129,6 @@ function handleOpenURIRequested(URI) {
   }
 }
 
-/*
- * Quits without any preparation. When a quit is requested (either through the
- * interface or through app.quit()), we abort the quit, try to shut down the daemon,
- * and then call this to quit for real.
- */
-function quitNow() {
-  readyToQuit = true;
-  safeQuit();
-}
-
-function handleDaemonSubprocessExited() {
-  console.log('The daemon has exited.');
-  daemonSubprocess = null;
-  if (!daemonStopRequested) {
-    // We didn't request to stop the daemon, so display a
-    // warning and schedule a quit.
-    //
-    // TODO: maybe it would be better to restart the daemon?
-    if (rendererWindow) {
-      console.log('Did not request daemon stop, so quitting in 5 seconds.');
-      rendererWindow.loadURL(`file://${__static}/warning.html`);
-      setTimeout(quitNow, 5000);
-    } else {
-      console.log('Did not request daemon stop, so quitting.');
-      quitNow();
-    }
-  }
-}
-
-function launchDaemon() {
-  assert(!daemonSubprocess, 'Tried to launch daemon twice');
-
-  console.log('Launching daemon:', daemonPath);
-  daemonSubprocess = ChildProcess.spawn(daemonPath);
-  // Need to handle the data event instead of attaching to
-  // process.stdout because the latter doesn't work. I believe on
-  // windows it buffers stdout and we don't get any meaningful output
-  daemonSubprocess.stdout.on('data', buf => {
-    console.log(String(buf).trim());
-  });
-  daemonSubprocess.stderr.on('data', buf => {
-    console.log(String(buf).trim());
-  });
-  daemonSubprocess.on('exit', handleDaemonSubprocessExited);
-}
-
 const isSecondaryInstance = app.makeSingleInstance(argv => {
   if (argv.length >= 2) {
     handleOpenURIRequested(argv[1]); // This will handle restoring and focusing the window
@@ -334,66 +144,7 @@ const isSecondaryInstance = app.makeSingleInstance(argv => {
 
 if (isSecondaryInstance) {
   // We're not in the original process, so quit
-  quitNow();
-}
-
-function launchDaemonIfNotRunning() {
-  // Check if the daemon is already running. If we get
-  // an error its because its not running
-  console.log('Checking for lbrynet daemon');
-  client.request('status', [], err => {
-    if (err) {
-      console.log('lbrynet daemon needs to be launched');
-      launchDaemon();
-    } else {
-      console.log('lbrynet daemon is already running');
-    }
-  });
-}
-
-// Taken from webtorrent-desktop
-function checkLinuxTraySupport(cb) {
-  // Check that we're on Ubuntu (or another debian system) and that we have
-  // libappindicator1.
-  ChildProcess.exec('dpkg --get-selections libappindicator1', (err, stdout) => {
-    if (err) return cb(err);
-    // Unfortunately there's no cleaner way, as far as I can tell, to check
-    // whether a debian package is installed:
-    if (stdout.endsWith('\tinstall\n')) {
-      return cb(null);
-    }
-    return cb(new Error('debian package not installed'));
-  });
-}
-
-// When a quit is attempted, this is called. It attempts to shutdown the daemon,
-// then calls quitNow() to quit for real.
-function shutdownDaemonAndQuit(evenIfNotStartedByApp = false) {
-  function doShutdown() {
-    console.log('Shutting down daemon');
-    daemonStopRequested = true;
-    client.request('daemon_stop', [], err => {
-      if (err) {
-        console.log(`received error when stopping lbrynet-daemon. Error message: ${err.message}\n`);
-        console.log('You will need to manually kill the daemon.');
-      } else {
-        console.log('Successfully stopped daemon via RPC call.');
-        quitNow();
-      }
-    });
-  }
-
-  if (daemonSubprocess) {
-    doShutdown();
-  } else if (!evenIfNotStartedByApp) {
-    console.log('Not killing lbrynet-daemon because app did not start it');
-    quitNow();
-  } else {
-    doShutdown();
-  }
-
-  // Is it safe to start the installer before the daemon finishes running?
-  // If not, we should wait until the daemon is closed before we start the install.
+  app.quit();
 }
 
 if (isDevelopment) {
@@ -423,36 +174,8 @@ if (isDevelopment) {
 app.setAsDefaultProtocolClient('lbry');
 
 app.on('ready', () => {
-  launchDaemonIfNotRunning();
-  if (process.platform === 'linux') {
-    checkLinuxTraySupport(err => {
-      if (!err) createTray();
-      else minimize = false;
-    });
-  } else {
-    createTray();
-  }
   rendererWindow = createWindow();
-});
-
-// Quit when all windows are closed.
-app.on('window-all-closed', () => {
-  // On macOS it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-app.on('before-quit', event => {
-  if (!readyToQuit) {
-    // We need to shutdown the daemon before we're ready to actually quit. This
-    // event will be triggered re-entrantly once preparation is done.
-    event.preventDefault();
-    shutdownDaemonAndQuit();
-  } else {
-    console.log('Quitting.');
-  }
+  tray = setupTray(rendererWindow, createWindow);
 });
 
 app.on('activate', () => {
@@ -471,73 +194,6 @@ if (process.platform === 'darwin') {
   handleOpenURIRequested(process.argv[1]);
 }
 
-ipcMain.on('upgrade', (event, installerPath) => {
-  app.on('quit', () => {
-    console.log('Launching upgrade installer at', installerPath);
-    // This gets triggered called after *all* other quit-related events, so
-    // we'll only get here if we're fully prepared and quitting for real.
-    openItem(installerPath);
-  });
-
-  if (rendererWindow) {
-    rendererWindow.loadURL(`file://${__static}/upgrade.html`);
-  }
-
-  shutdownDaemonAndQuit(true);
-  // wait for daemon to shut down before upgrading
-  // what to do if no shutdown in a long time?
-  console.log('Update downloaded to', installerPath);
-  console.log(
-    'The app will close, and you will be prompted to install the latest version of LBRY.'
-  );
-  console.log('After the install is complete, please reopen the app.');
-});
-
-ipcMain.on('version-info-requested', () => {
-  function formatRc(ver) {
-    // Adds dash if needed to make RC suffix semver friendly
-    return ver.replace(/([^-])rc/, '$1-rc');
-  }
-
-  let result = '';
-  const opts = {
-    headers: {
-      'User-Agent': `LBRY/${localVersion}`,
-    },
-  };
-
-  const req = https.get(Object.assign(opts, url.parse(latestReleaseAPIURL)), res => {
-    res.on('data', data => {
-      result += data;
-    });
-    res.on('end', () => {
-      const tagName = JSON.parse(result).tag_name;
-      const [, remoteVersion] = tagName.match(/^v([\d.]+(?:-?rc\d+)?)$/);
-      if (!remoteVersion) {
-        if (rendererWindow) {
-          rendererWindow.webContents.send('version-info-received', null);
-        }
-      } else {
-        const upgradeAvailable = SemVer.gt(formatRc(remoteVersion), formatRc(localVersion));
-        if (rendererWindow) {
-          rendererWindow.webContents.send('version-info-received', {
-            remoteVersion,
-            localVersion,
-            upgradeAvailable,
-          });
-        }
-      }
-    });
-  });
-
-  req.on('error', err => {
-    console.log('Failed to get current version from GitHub. Error:', err);
-    if (rendererWindow) {
-      rendererWindow.webContents.send('version-info-received', null);
-    }
-  });
-});
-
 ipcMain.on('get-auth-token', event => {
   keytar.getPassword('LBRY', 'auth_token').then(token => {
     event.sender.send('auth-token-response', token ? token.toString().trim() : null);
@@ -550,5 +206,9 @@ ipcMain.on('set-auth-token', (event, token) => {
 
 process.on('uncaughtException', error => {
   console.error(error);
-  safeQuit();
+  app.quit();
+});
+
+app.on('window-all-closed', () => {
+  // Subscribe to event so the app doesn't quit when closing the window.
 });
